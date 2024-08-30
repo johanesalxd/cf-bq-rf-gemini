@@ -46,6 +46,8 @@ curl -m 60 -X POST localhost:8080 \
 gcloud functions deploy cf-bq-rf-gemini \
     --gen2 \
     --concurrency=8 \
+    --cpu=1 \
+    --memory=2G \
     --runtime=go122 \
     --region=us-central1 \
     --source=. \
