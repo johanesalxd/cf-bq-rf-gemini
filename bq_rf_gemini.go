@@ -33,7 +33,6 @@ func BQRFGemini(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer clientPool.Put(client)
-
 	log.Print("Client retrieved from pool")
 
 	bqResp := textsToTexts(ctx, client, bqReq)

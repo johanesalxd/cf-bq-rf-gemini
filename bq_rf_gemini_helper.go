@@ -34,6 +34,7 @@ func textsToTexts(ctx context.Context, client *genai.Client, bqReq *BigQueryRequ
 						PromptInput: promptInput,
 						Model:       model,
 					}
+
 					text := textToText(ctx, client, input)
 					texts[i] = generateText(text, &input)
 
@@ -56,7 +57,9 @@ func textToText(ctx context.Context, client *genai.Client, input promptRequest) 
 
 	resp, err := mdl.GenerateContent(ctx, genai.Text(input.PromptInput))
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Error generating content: %v", err)
+
+		return nil
 	}
 
 	return resp
@@ -64,17 +67,25 @@ func textToText(ctx context.Context, client *genai.Client, input promptRequest) 
 
 // generateText extracts the generated text from the AI response and formats it as JSON
 func generateText(resp *genai.GenerateContentResponse, input *promptRequest) string {
-	var output string
+	if resp == nil {
+		log.Printf("Error: Received nil response")
 
-	for _, cand := range resp.Candidates {
-		if cand.Content != nil {
-			for _, part := range cand.Content.Parts {
-				output += string(part.(genai.Text))
+		input.PromptOutput = "Error: No response generated"
+	} else {
+		var output string
+
+		for _, cand := range resp.Candidates {
+			if cand.Content != nil {
+				for _, part := range cand.Content.Parts {
+					if text, ok := part.(genai.Text); ok {
+						output += string(text)
+					}
+				}
 			}
 		}
-	}
 
-	input.PromptOutput = output
+		input.PromptOutput = output
+	}
 
 	jsonInput, err := json.Marshal(input)
 	if err != nil {
