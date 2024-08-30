@@ -18,24 +18,25 @@ func textsToTexts(ctx context.Context, client *genai.Client, bqReq *BigQueryRequ
 	for i, call := range bqReq.Calls {
 		wait.Add(1)
 
-		go func(j int, promptInput, model string) {
+		go func(i int, promptInput, model string) {
 			defer wait.Done()
 
 			for {
 				select {
 				case <-ctx.Done():
-					log.Printf("Got cancellation signal in Goroutine #%d", j)
+					log.Printf("Got cancellation signal in Goroutine #%d", i)
 
 					return
 				default:
-					log.Printf("Running in Goroutine #%d for input: %v", j, promptInput)
+					//TODO: remove promptInput for less verbose logging
+					log.Printf("Running in Goroutine #%d for input: %v", i, promptInput)
 
 					input := promptRequest{
 						PromptInput: promptInput,
 						Model:       model,
 					}
 
-					text := textToText(ctx, client, input)
+					text := textToText(ctx, client, &input)
 					texts[i] = generateText(text, &input)
 
 					return
@@ -52,12 +53,12 @@ func textsToTexts(ctx context.Context, client *genai.Client, bqReq *BigQueryRequ
 }
 
 // textToText generates content for a single text input using the specified Gemini AI model
-func textToText(ctx context.Context, client *genai.Client, input promptRequest) *genai.GenerateContentResponse {
+func textToText(ctx context.Context, client *genai.Client, input *promptRequest) *genai.GenerateContentResponse {
 	mdl := client.GenerativeModel(input.Model)
 
 	resp, err := mdl.GenerateContent(ctx, genai.Text(input.PromptInput))
 	if err != nil {
-		log.Printf("Error generating content: %v", err)
+		input.PromptOutput = err.Error()
 
 		return nil
 	}
@@ -68,9 +69,7 @@ func textToText(ctx context.Context, client *genai.Client, input promptRequest) 
 // generateText extracts the generated text from the AI response and formats it as JSON
 func generateText(resp *genai.GenerateContentResponse, input *promptRequest) string {
 	if resp == nil {
-		log.Printf("Error: Received nil response")
-
-		input.PromptOutput = "Error: No response generated"
+		log.Printf("Error: Received nil response: %v", input.PromptOutput)
 	} else {
 		var output string
 
