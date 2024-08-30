@@ -1,9 +1,16 @@
 package bqrfgemini
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"os"
+	"sync"
+
+	"github.com/google/generative-ai-go/genai"
+	"google.golang.org/api/option"
 )
 
 // SendError sends an error response with the given error message and HTTP status code
@@ -21,4 +28,24 @@ func SendSuccess(w http.ResponseWriter, bqResp *BigQueryResponse) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(bqResp)
+}
+
+func initializePool() {
+	// TODO: Replace the API key with an environment variable for better security
+	// TODO: Change from Google AI to Vertex AI
+	// TODO: Update client initialization to use Vertex AI
+	clientPool = &sync.Pool{
+		New: func() interface{} {
+			client, err := genai.NewClient(context.Background(), option.WithAPIKey(os.Getenv("GEMINI_API_KEY")))
+			if err != nil {
+				initError = fmt.Errorf("failed to setup client pool: %v", err)
+
+				return nil
+			}
+
+			log.Print("Client created")
+
+			return client
+		},
+	}
 }
