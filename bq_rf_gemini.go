@@ -3,10 +3,11 @@ package bqrfgemini
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 
-	"github.com/google/generative-ai-go/genai"
+	"cloud.google.com/go/vertexai/genai"
 )
 
 // BQRFGemini handles HTTP requests for the BigQuery Remote Function using Gemini AI
@@ -27,7 +28,7 @@ func BQRFGemini(w http.ResponseWriter, r *http.Request) {
 
 	client := clientPool.Get().(*genai.Client)
 	if client == nil {
-		SendError(w, initError, http.StatusInternalServerError)
+		SendError(w, fmt.Errorf("failed to get client from pool"), http.StatusInternalServerError)
 
 		return
 	}

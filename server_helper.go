@@ -9,8 +9,12 @@ import (
 	"os"
 	"sync"
 
-	"github.com/google/generative-ai-go/genai"
-	"google.golang.org/api/option"
+	"cloud.google.com/go/vertexai/genai"
+)
+
+var (
+	clientPool *sync.Pool
+	initOnce   sync.Once
 )
 
 // SendError sends an error response with the given error message and HTTP status code
@@ -31,18 +35,14 @@ func SendSuccess(w http.ResponseWriter, bqResp *BigQueryResponse) {
 }
 
 func initializePool() {
-	// TODO: Replace the API key with an environment variable for better security
-	// TODO: Change from Google AI to Vertex AI
-	// TODO: Update client initialization to use Vertex AI
 	clientPool = &sync.Pool{
 		New: func() interface{} {
-			client, err := genai.NewClient(context.Background(), option.WithAPIKey(os.Getenv("GEMINI_API_KEY")))
+			client, err := genai.NewClient(context.Background(), os.Getenv("PROJECT_ID"), os.Getenv("LOCATION"))
 			if err != nil {
-				initError = fmt.Errorf("failed to setup client pool: %v", err)
+				log.Printf("Failed to create client: %v", err)
 
 				return nil
 			}
-
 			log.Print("Client created")
 
 			return client

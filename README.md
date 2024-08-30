@@ -5,7 +5,7 @@ Details TBA
 # How to run
 ## Run locally
 ```
-FUNCTION_TARGET=BQRFGemini GEMINI_API_KEY=YOUR_GEMINI_API_KEY go run cmd/main.go
+FUNCTION_TARGET=BQRFGemini PROJECT_ID=YOUR_PROJECT_ID LOCATION=YOUR_LOCATION go run cmd/main.go
 ```
 
 ## Run locally with Pack and Docker
@@ -16,7 +16,8 @@ gcloud auth application-default login
 
 ADC=~/.config/gcloud/application_default_credentials.json && \
 docker run -p8080:8080 \
--e GEMINI_API_KEY=YOUR_GEMINI_API_KEY \
+-e PROJECT_ID=YOUR_PROJECT_ID \
+-e LOCATION=YOUR_LOCATION \
 -e GOOGLE_APPLICATION_CREDENTIALS=/tmp/keys/secret.json \
 -v ${ADC}:/tmp/keys/secret.json \
 cf-bq-rf-gemini
@@ -50,7 +51,8 @@ gcloud functions deploy cf-bq-rf-gemini \
     --source=. \
     --entry-point=BQRFGemini \
     --trigger-http \
-    --allow-unauthenticated
+    --allow-unauthenticated \
+    --env-vars-file=.env.yaml
 ```
 
 ## Run on Cloud Run

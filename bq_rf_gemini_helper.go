@@ -7,7 +7,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/google/generative-ai-go/genai"
+	"cloud.google.com/go/vertexai/genai"
 )
 
 // textsToTexts processes multiple text inputs concurrently using the Gemini AI model
