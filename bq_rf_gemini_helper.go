@@ -61,10 +61,16 @@ func textToText(ctx context.Context, client *genai.Client, input *promptRequest)
 		log.Printf("Error generating text for input: %v", err)
 		input.PromptOutput = err.Error()
 
-		return generateText(input)
+		return generateJSONResponse(input)
 	}
 
-	// Extract the generated text from the response
+	input.PromptOutput = extractTextFromResponse(resp)
+
+	return generateJSONResponse(input)
+}
+
+// extractTextFromResponse extract text from the response
+func extractTextFromResponse(resp *genai.GenerateContentResponse) string {
 	var output string
 
 	for _, cand := range resp.Candidates {
@@ -77,13 +83,11 @@ func textToText(ctx context.Context, client *genai.Client, input *promptRequest)
 		}
 	}
 
-	input.PromptOutput = output
-
-	return generateText(input)
+	return output
 }
 
-// generateText converts the promptRequest to JSON format
-func generateText(input *promptRequest) string {
+// generateJSONResponse converts the promptRequest to JSON format
+func generateJSONResponse(input *promptRequest) string {
 	jsonInput, err := json.Marshal(input)
 	if err != nil {
 		log.Printf("Error marshaling input to JSON: %v", err)

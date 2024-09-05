@@ -26,13 +26,19 @@ func BQRFGemini(w http.ResponseWriter, r *http.Request) {
 		cancel()
 	}()
 
-	client := clientPool.Get().(*genai.Client)
-	if client == nil {
-		SendError(w, fmt.Errorf("failed to get client from pool"), http.StatusInternalServerError)
+	clientInterface := clientPool.Get()
+	defer func() {
+		if clientInterface != nil {
+			clientPool.Put(clientInterface)
+		}
+	}()
+
+	client, ok := clientInterface.(*genai.Client)
+	if !ok || client == nil {
+		SendError(w, fmt.Errorf("failed to get valid client"), http.StatusInternalServerError)
 
 		return
 	}
-	defer clientPool.Put(client)
 	log.Print("Client retrieved from pool")
 
 	bqResp := textsToTexts(ctx, client, bqReq)
