@@ -21,26 +21,22 @@ func textsToTexts(ctx context.Context, client *genai.Client, bqReq *BigQueryRequ
 		go func(i int, promptInput, model string) {
 			defer wait.Done()
 
-			for {
-				select {
-				case <-ctx.Done():
-					log.Printf("Got cancellation signal in Goroutine #%d", i)
+			select {
+			case <-ctx.Done():
+				log.Printf("Got cancellation signal in Goroutine #%d", i)
 
-					return
-				default:
-					//TODO: remove promptInput for less verbose logging
-					log.Printf("Running in Goroutine #%d for input: %v", i, promptInput)
+				return
+			default:
+				//TODO: remove promptInput for less verbose logging
+				log.Printf("Running in Goroutine #%d for input: %v", i, promptInput)
 
-					input := promptRequest{
-						PromptInput: promptInput,
-						Model:       model,
-					}
-
-					text := textToText(ctx, client, &input)
-					texts[i] = generateText(text, &input)
-
-					return
+				input := promptRequest{
+					PromptInput: promptInput,
+					Model:       model,
 				}
+
+				text := textToText(ctx, client, &input)
+				texts[i] = generateText(text, &input)
 			}
 		}(i, fmt.Sprint(call[0]), fmt.Sprint(call[1]))
 	}
