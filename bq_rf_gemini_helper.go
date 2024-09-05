@@ -12,9 +12,11 @@ import (
 
 // textsToTexts processes multiple text inputs concurrently using the Gemini AI model
 func textsToTexts(ctx context.Context, client *genai.Client, bqReq *BigQueryRequest) *BigQueryResponse {
+	// Initialize a slice to store the processed texts
 	texts := make([]string, len(bqReq.Calls))
 	wait := new(sync.WaitGroup)
 
+	// Process each call concurrently
 	for i, call := range bqReq.Calls {
 		wait.Add(1)
 
@@ -24,7 +26,6 @@ func textsToTexts(ctx context.Context, client *genai.Client, bqReq *BigQueryRequ
 			select {
 			case <-ctx.Done():
 				log.Printf("Got cancellation signal in Goroutine #%d", i)
-
 				return
 			default:
 				//TODO: remove promptInput for less verbose logging
@@ -35,57 +36,58 @@ func textsToTexts(ctx context.Context, client *genai.Client, bqReq *BigQueryRequ
 					Model:       model,
 				}
 
-				text := textToText(ctx, client, &input)
-				texts[i] = generateText(text, &input)
+				// Process the input and store the result
+				texts[i] = textToText(ctx, client, &input)
 			}
 		}(i, fmt.Sprint(call[0]), fmt.Sprint(call[1]))
 	}
 	wait.Wait()
 
+	// Prepare and return the BigQuery response
 	bqResp := new(BigQueryResponse)
 	bqResp.Replies = texts
 
 	return bqResp
 }
 
-// textToText generates content for a single text input using the specified Gemini AI model
-func textToText(ctx context.Context, client *genai.Client, input *promptRequest) *genai.GenerateContentResponse {
+// textToText processes a single text input using the Gemini AI model
+func textToText(ctx context.Context, client *genai.Client, input *promptRequest) string {
+	// Get the generative model
 	mdl := client.GenerativeModel(input.Model)
 
+	// Generate content using the model
 	resp, err := mdl.GenerateContent(ctx, genai.Text(input.PromptInput))
 	if err != nil {
+		log.Printf("Error generating text for input: %v", err)
 		input.PromptOutput = err.Error()
 
-		return nil
+		return generateText(input)
 	}
 
-	return resp
-}
+	// Extract the generated text from the response
+	var output string
 
-// generateText extracts the generated text from the AI response and formats it as JSON
-func generateText(resp *genai.GenerateContentResponse, input *promptRequest) string {
-	if resp == nil {
-		log.Printf("Error: Received nil response: %v", input.PromptOutput)
-	} else {
-		var output string
-
-		for _, cand := range resp.Candidates {
-			if cand.Content != nil {
-				for _, part := range cand.Content.Parts {
-					if text, ok := part.(genai.Text); ok {
-						output += string(text)
-					}
+	for _, cand := range resp.Candidates {
+		if cand.Content != nil {
+			for _, part := range cand.Content.Parts {
+				if text, ok := part.(genai.Text); ok {
+					output += string(text)
 				}
 			}
 		}
-
-		input.PromptOutput = output
 	}
 
+	input.PromptOutput = output
+
+	return generateText(input)
+}
+
+// generateText converts the promptRequest to JSON format
+func generateText(input *promptRequest) string {
 	jsonInput, err := json.Marshal(input)
 	if err != nil {
 		log.Printf("Error marshaling input to JSON: %v", err)
-		return ""
+		return fmt.Sprintf(`{"error": "Failed to marshal input: %v"}`, err)
 	}
 
 	return string(jsonInput)
