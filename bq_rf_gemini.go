@@ -31,6 +31,8 @@ func BQRFGemini(w http.ResponseWriter, r *http.Request) {
 		if clientInterface != nil {
 			clientPool.Put(clientInterface)
 		}
+
+		log.Print("Client returned to pool")
 	}()
 
 	client, ok := clientInterface.(*genai.Client)
