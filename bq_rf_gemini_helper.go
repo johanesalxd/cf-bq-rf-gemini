@@ -59,40 +59,21 @@ func textToText(ctx context.Context, client *genai.Client, input *promptRequest)
 	resp, err := mdl.GenerateContent(ctx, genai.Text(input.PromptInput))
 	if err != nil {
 		log.Printf("Error generating text for input: %v", err)
-		input.PromptOutput = err.Error()
-
-		return generateJSONResponse(input)
+		input.PromptOutput = json.RawMessage(fmt.Sprintf(`{"error": "%s"}`, err.Error()))
+	} else {
+		input.PromptOutput = GenerateJSONResponse(resp)
 	}
 
-	input.PromptOutput = extractTextFromResponse(resp)
-
-	return generateJSONResponse(input)
+	return string(GenerateJSONResponse(input))
 }
 
-// extractTextFromResponse extract text from the response
-func extractTextFromResponse(resp *genai.GenerateContentResponse) string {
-	var output string
-
-	for _, cand := range resp.Candidates {
-		if cand.Content != nil {
-			for _, part := range cand.Content.Parts {
-				if text, ok := part.(genai.Text); ok {
-					output += string(text)
-				}
-			}
-		}
-	}
-
-	return output
-}
-
-// generateJSONResponse converts the promptRequest to JSON format
-func generateJSONResponse(input *promptRequest) string {
+// GenerateJSONResponse converts the promptRequest to JSON format
+func GenerateJSONResponse(input any) json.RawMessage {
 	jsonInput, err := json.Marshal(input)
 	if err != nil {
 		log.Printf("Error marshaling input to JSON: %v", err)
-		return fmt.Sprintf(`{"error": "Failed to marshal input: %v"}`, err)
+		return json.RawMessage(fmt.Sprintf(`{"error": "%s"}`, err.Error()))
 	}
 
-	return string(jsonInput)
+	return jsonInput
 }
