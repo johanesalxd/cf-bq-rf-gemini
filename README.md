@@ -24,7 +24,6 @@ cf-bq-rf-gemini
 ```
 
 ## Test locally (accept BQ RF [request contract](https://cloud.google.com/bigquery/docs/remote-functions#input_format))
-Notes: *model* should be the same for the same call
 ```
 curl -m 60 -X POST localhost:8080 \
 -H "Content-Type: application/json" \
@@ -34,9 +33,9 @@ curl -m 60 -X POST localhost:8080 \
   "sessionUser": "",
   "userDefinedContext": {},
   "calls": [
-    ["prompt_1", "model"],
-    ["prompt_2", "model"],
-    ["prompt_3", "model"]
+    ["what is bigquery", "gemini-1.5-flash-001"],
+    ["what is google cloud functions", "gemini-1.5-pro-001"],
+    ["what is golang", "gemini-1.0-pro-002"]
   ]
   }'
 ```
@@ -61,7 +60,8 @@ gcloud functions deploy cf-bq-rf-gemini \
 [![Run on Google Cloud](https://deploy.cloud.run/button.svg)](https://deploy.cloud.run)
 
 # Additional notes
-Details TBA
+TBA
+
 ## Related links
 * https://cloud.google.com/bigquery/docs/remote-functions
 * https://cloud.google.com/functions/docs/concepts/go-runtime

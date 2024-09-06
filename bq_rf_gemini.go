@@ -21,9 +21,9 @@ func BQRFGemini(w http.ResponseWriter, r *http.Request) {
 
 	ctx, cancel := context.WithCancel(r.Context())
 	defer func() {
-		log.Print("Done, Goroutines closed")
-
 		cancel()
+
+		log.Print("Done, Goroutines closed")
 	}()
 
 	clientInterface := clientPool.Get()
