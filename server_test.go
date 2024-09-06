@@ -20,15 +20,39 @@ func TestSendError(t *testing.T) {
 	}{
 		{
 			name: "error with code 500",
-			err:  fmt.Errorf("error"),
+			err:  fmt.Errorf("internal server error"),
 			code: http.StatusInternalServerError,
-			want: "Got error with details: error",
+			want: "Got error with details: internal server error",
 		},
 		{
 			name: "error with code 400",
-			err:  fmt.Errorf("error"),
+			err:  fmt.Errorf("bad request"),
 			code: http.StatusBadRequest,
-			want: "Got error with details: error",
+			want: "Got error with details: bad request",
+		},
+		{
+			name: "error with code 404",
+			err:  fmt.Errorf("not found"),
+			code: http.StatusNotFound,
+			want: "Got error with details: not found",
+		},
+		{
+			name: "error with code 403",
+			err:  fmt.Errorf("forbidden"),
+			code: http.StatusForbidden,
+			want: "Got error with details: forbidden",
+		},
+		{
+			name: "error with code 401",
+			err:  fmt.Errorf("unauthorized"),
+			code: http.StatusUnauthorized,
+			want: "Got error with details: unauthorized",
+		},
+		{
+			name: "error with custom message",
+			err:  fmt.Errorf("custom error message"),
+			code: http.StatusInternalServerError,
+			want: "Got error with details: custom error message",
 		},
 	}
 	for _, test := range tests {
@@ -62,9 +86,38 @@ func TestSendSuccess(t *testing.T) {
 		want []string
 	}{
 		{
-			name: "success",
+			name: "single success reply",
 			resp: &bqrfgemini.BigQueryResponse{
 				Replies: []string{"success"},
+			},
+			want: []string{"success"},
+		},
+		{
+			name: "multiple success replies",
+			resp: &bqrfgemini.BigQueryResponse{
+				Replies: []string{"success1", "success2", "success3"},
+			},
+			want: []string{"success1", "success2", "success3"},
+		},
+		{
+			name: "empty replies",
+			resp: &bqrfgemini.BigQueryResponse{
+				Replies: []string{},
+			},
+			want: []string{},
+		},
+		{
+			name: "nil replies",
+			resp: &bqrfgemini.BigQueryResponse{
+				Replies: nil,
+			},
+			want: nil,
+		},
+		{
+			name: "response with error message",
+			resp: &bqrfgemini.BigQueryResponse{
+				Replies:      []string{"success"},
+				ErrorMessage: "Some error occurred",
 			},
 			want: []string{"success"},
 		},
@@ -86,8 +139,11 @@ func TestSendSuccess(t *testing.T) {
 			if err := json.NewDecoder(resp.Body).Decode(&got); err != nil {
 				t.Errorf("SendSuccess(%v) = %v, want %v", test.resp, err, test.want)
 			}
-			if reflect.DeepEqual(&got.Replies, test.want) {
+			if !reflect.DeepEqual(got.Replies, test.want) {
 				t.Errorf("SendSuccess(%v) = %v, want %v", test.resp, got.Replies, test.want)
+			}
+			if got.ErrorMessage != test.resp.ErrorMessage {
+				t.Errorf("SendSuccess(%v) ErrorMessage = %v, want %v", test.resp, got.ErrorMessage, test.resp.ErrorMessage)
 			}
 		})
 	}
