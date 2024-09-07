@@ -15,51 +15,58 @@ func textsToTexts(ctx context.Context, client *genai.Client, bqReq *BigQueryRequ
 	// Initialize a slice to store the processed texts
 	texts := make([]string, len(bqReq.Calls))
 	wait := new(sync.WaitGroup)
+	semaphore := make(chan struct{}, 100) // Limit to 100 concurrent goroutines
 
-	// Process each call concurrently
 	for i, call := range bqReq.Calls {
-		wait.Add(1)
+		select {
+		case <-ctx.Done():
+			log.Printf("Context cancelled before starting goroutine #%d", i)
+			texts[i] = string(GenerateJSONResponse(&PromptRequest{
+				PromptOutput: json.RawMessage(`{"error": "Request cancelled"}`),
+			}))
 
-		go func(i int, call []interface{}) {
-			defer wait.Done()
+			continue
+		default:
+			wait.Add(1)
 
-			select {
-			case <-ctx.Done():
-				log.Printf("Got cancellation signal in Goroutine #%d", i)
-
-				return
-			default:
+			// Process each call concurrently
+			go func(i int, call []interface{}) {
+				// Acquire semaphore
+				semaphore <- struct{}{}
+				defer func() {
+					// Release semaphore
+					<-semaphore
+					wait.Done()
+				}()
 				log.Printf("Processing request in Goroutine #%d", i)
-				input := newPromptRequest()
 
 				// Check if call has at least 3 elements
 				if len(call) != 3 {
 					log.Printf("Error in Goroutine #%d: call does not have enough elements", i)
-
-					// Set error message in PromptOutput
-					input.PromptOutput = json.RawMessage(`{"error": "Invalid input: expected at least 3 elements"}`)
-					texts[i] = string(GenerateJSONResponse(input))
+					texts[i] = string(GenerateJSONResponse(&PromptRequest{
+						PromptOutput: json.RawMessage(`{"error": "Invalid input: expected at least 3 elements"}`),
+					}))
 
 					return
 				}
 
 				// Update the input from the call slice
+				input := newPromptRequest()
 				input.PromptInput = fmt.Sprint(call[0])
 				input.Model = fmt.Sprint(call[1])
 				input.ModelConfig = ParseModelConfig(fmt.Sprint(call[2]))
 				textToText(ctx, client, &input)
 
 				texts[i] = string(GenerateJSONResponse(input))
-			}
-		}(i, call)
+			}(i, call)
+		}
 	}
 	wait.Wait()
 
 	// Prepare and return the BigQuery response
-	bqResp := new(BigQueryResponse)
-	bqResp.Replies = texts
-
-	return bqResp
+	return &BigQueryResponse{
+		Replies: texts,
+	}
 }
 
 // Generates content based on the provided input
