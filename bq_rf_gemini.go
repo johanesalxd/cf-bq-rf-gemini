@@ -3,7 +3,6 @@ package bqrfgemini
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 
@@ -12,6 +11,7 @@ import (
 
 // BQRFGemini handles HTTP requests for the BigQuery Remote Function using Gemini AI
 func BQRFGemini(w http.ResponseWriter, r *http.Request) {
+	// Decode the incoming BigQuery request
 	bqReq := new(BigQueryRequest)
 	if err := json.NewDecoder(r.Body).Decode(bqReq); err != nil {
 		SendError(w, err, http.StatusBadRequest)
@@ -19,6 +19,7 @@ func BQRFGemini(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Create a cancellable context
 	ctx, cancel := context.WithCancel(r.Context())
 	defer func() {
 		cancel()
@@ -26,6 +27,7 @@ func BQRFGemini(w http.ResponseWriter, r *http.Request) {
 		log.Print("Done, Goroutines closed")
 	}()
 
+	// Get a client from the pool
 	clientInterface := clientPool.Get()
 	defer func() {
 		if clientInterface != nil {
@@ -35,14 +37,13 @@ func BQRFGemini(w http.ResponseWriter, r *http.Request) {
 		log.Print("Client returned to pool")
 	}()
 
-	client, ok := clientInterface.(*genai.Client)
-	if !ok || client == nil {
-		SendError(w, fmt.Errorf("failed to get valid client"), http.StatusInternalServerError)
-
-		return
-	}
+	// Type assert the clientInterface to *genai.Client
+	client := clientInterface.(*genai.Client)
 	log.Print("Client retrieved from pool")
 
+	// Process the request using textsToTexts function
 	bqResp := textsToTexts(ctx, client, bqReq)
+
+	// Send the successful response
 	SendSuccess(w, bqResp)
 }

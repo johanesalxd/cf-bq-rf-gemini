@@ -23,7 +23,7 @@ docker run -p8080:8080 \
 cf-bq-rf-gemini
 ```
 
-## Test locally (accept BQ RF [request contract](https://cloud.google.com/bigquery/docs/remote-functions#input_format))
+## Test locally (accept [BQ RF request contract](https://cloud.google.com/bigquery/docs/remote-functions#input_format))
 ```
 curl -m 60 -X POST localhost:8080 \
 -H "Content-Type: application/json" \
@@ -33,11 +33,12 @@ curl -m 60 -X POST localhost:8080 \
   "sessionUser": "",
   "userDefinedContext": {},
   "calls": [
-    ["what is bigquery", "gemini-1.5-flash-001"],
-    ["what is google cloud functions", "gemini-1.5-pro-001"],
-    ["what is golang", "gemini-1.0-pro-002"]
+    ["what is bigquery", "gemini-1.5-flash-001", "{\"temperature\":0.2,\"maxOutputTokens\":8000,\"topP\":0.8,\"topK\":40}"],
+    ["default model config", "gemini-1.5-pro-001", "{\"temperature\":0.2,\"maxOutputTokens\":8000"],
+    ["error model", "gemini-1.0-proo", "{\"topP\":0.8,\"topK\":40}"],
+    ["missing element", "gemini-1.0-pro-002"]
   ]
-  }'
+}'
 ```
 
 ## Run on Cloud Function

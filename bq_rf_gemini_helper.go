@@ -20,26 +20,38 @@ func textsToTexts(ctx context.Context, client *genai.Client, bqReq *BigQueryRequ
 	for i, call := range bqReq.Calls {
 		wait.Add(1)
 
-		go func(i int, promptInput, model string) {
+		go func(i int, call []interface{}) {
 			defer wait.Done()
 
 			select {
 			case <-ctx.Done():
 				log.Printf("Got cancellation signal in Goroutine #%d", i)
+
 				return
 			default:
-				//TODO: remove promptInput for less verbose logging
-				log.Printf("Running in Goroutine #%d for input: %v", i, promptInput)
+				input := newPromptRequest()
 
-				input := promptRequest{
-					PromptInput: promptInput,
-					Model:       model,
+				// Check if call has at least 3 elements
+				if len(call) != 3 {
+					log.Printf("Error in Goroutine #%d: call does not have enough elements", i)
+
+					// Set error message in PromptOutput
+					input.PromptOutput = json.RawMessage(`{"error": "Invalid input: expected at least 3 elements"}`)
+					texts[i] = string(GenerateJSONResponse(input))
+
+					return
 				}
 
-				// Process the input and store the result
+				log.Printf("Processing request in Goroutine #%d", i)
+
+				input = PromptRequest{
+					PromptInput: fmt.Sprint(call[0]),
+					Model:       fmt.Sprint(call[1]),
+					ModelConfig: ParseModelConfig(fmt.Sprint(call[2])),
+				}
 				texts[i] = textToText(ctx, client, &input)
 			}
-		}(i, fmt.Sprint(call[0]), fmt.Sprint(call[1]))
+		}(i, call)
 	}
 	wait.Wait()
 
@@ -51,9 +63,13 @@ func textsToTexts(ctx context.Context, client *genai.Client, bqReq *BigQueryRequ
 }
 
 // textToText processes a single text input using the Gemini AI model
-func textToText(ctx context.Context, client *genai.Client, input *promptRequest) string {
-	// Get the generative model
+func textToText(ctx context.Context, client *genai.Client, input *PromptRequest) string {
+	// Configure the generative model with input parameters
 	mdl := client.GenerativeModel(input.Model)
+	mdl.SetMaxOutputTokens(input.ModelConfig.MaxOutputTokens)
+	mdl.SetTemperature(input.ModelConfig.Temperature)
+	mdl.SetTopP(input.ModelConfig.TopP)
+	mdl.SetTopK(input.ModelConfig.TopK)
 
 	// Generate content using the model
 	resp, err := mdl.GenerateContent(ctx, genai.Text(input.PromptInput))
@@ -64,10 +80,11 @@ func textToText(ctx context.Context, client *genai.Client, input *promptRequest)
 		input.PromptOutput = GenerateJSONResponse(resp)
 	}
 
+	// Return the JSON representation of the entire PromptRequest
 	return string(GenerateJSONResponse(input))
 }
 
-// GenerateJSONResponse converts the promptRequest to JSON format
+// GenerateJSONResponse converts the input to JSON format
 func GenerateJSONResponse(input any) json.RawMessage {
 	jsonInput, err := json.Marshal(input)
 	if err != nil {
@@ -76,4 +93,17 @@ func GenerateJSONResponse(input any) json.RawMessage {
 	}
 
 	return jsonInput
+}
+
+// ParseModelConfig converts a JSON string to ModelConfig struct
+func ParseModelConfig(input string) ModelConfig {
+	config := newModelConfig()
+
+	// Attempt to unmarshal the input JSON into the config
+	if err := json.Unmarshal([]byte(input), &config); err != nil {
+		log.Printf("Default value used due to error unmarshaling model config: %v", err)
+		return config
+	}
+
+	return config
 }
