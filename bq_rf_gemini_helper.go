@@ -29,6 +29,7 @@ func textsToTexts(ctx context.Context, client *genai.Client, bqReq *BigQueryRequ
 
 				return
 			default:
+				log.Printf("Processing request in Goroutine #%d", i)
 				input := newPromptRequest()
 
 				// Check if call has at least 3 elements
@@ -42,14 +43,13 @@ func textsToTexts(ctx context.Context, client *genai.Client, bqReq *BigQueryRequ
 					return
 				}
 
-				log.Printf("Processing request in Goroutine #%d", i)
+				// Update the input from the call slice
+				input.PromptInput = fmt.Sprint(call[0])
+				input.Model = fmt.Sprint(call[1])
+				input.ModelConfig = ParseModelConfig(fmt.Sprint(call[2]))
+				textToText(ctx, client, &input)
 
-				input = PromptRequest{
-					PromptInput: fmt.Sprint(call[0]),
-					Model:       fmt.Sprint(call[1]),
-					ModelConfig: ParseModelConfig(fmt.Sprint(call[2])),
-				}
-				texts[i] = textToText(ctx, client, &input)
+				texts[i] = string(GenerateJSONResponse(input))
 			}
 		}(i, call)
 	}
@@ -62,8 +62,8 @@ func textsToTexts(ctx context.Context, client *genai.Client, bqReq *BigQueryRequ
 	return bqResp
 }
 
-// textToText processes a single text input using the Gemini AI model
-func textToText(ctx context.Context, client *genai.Client, input *PromptRequest) string {
+// Generates content based on the provided input
+func textToText(ctx context.Context, client *genai.Client, input *PromptRequest) {
 	// Configure the generative model with input parameters
 	mdl := client.GenerativeModel(input.Model)
 	mdl.SetMaxOutputTokens(input.ModelConfig.MaxOutputTokens)
@@ -79,9 +79,6 @@ func textToText(ctx context.Context, client *genai.Client, input *PromptRequest)
 	} else {
 		input.PromptOutput = GenerateJSONResponse(resp)
 	}
-
-	// Return the JSON representation of the entire PromptRequest
-	return string(GenerateJSONResponse(input))
 }
 
 // GenerateJSONResponse converts the input to JSON format

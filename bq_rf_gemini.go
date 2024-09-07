@@ -28,17 +28,13 @@ func BQRFGemini(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	// Get a client from the pool
-	clientInterface := clientPool.Get()
+	client := clientPool.Get().(*genai.Client)
 	defer func() {
-		if clientInterface != nil {
-			clientPool.Put(clientInterface)
+		if client != nil {
+			clientPool.Put(client)
+			log.Print("Client returned to pool")
 		}
-
-		log.Print("Client returned to pool")
 	}()
-
-	// Type assert the clientInterface to *genai.Client
-	client := clientInterface.(*genai.Client)
 	log.Print("Client retrieved from pool")
 
 	// Process the request using textsToTexts function

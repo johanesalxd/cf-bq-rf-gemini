@@ -39,9 +39,7 @@ func initializePool() {
 		New: func() interface{} {
 			client, err := genai.NewClient(context.Background(), os.Getenv("PROJECT_ID"), os.Getenv("LOCATION"))
 			if err != nil {
-				log.Printf("Failed to create client: %v", err)
-
-				return nil
+				log.Fatalf("Failed to create client: %v", err)
 			}
 			log.Print("Client created")
 
