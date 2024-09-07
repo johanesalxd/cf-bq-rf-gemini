@@ -40,11 +40,11 @@ func textsToTexts(ctx context.Context, client *genai.Client, bqReq *BigQueryRequ
 				}()
 				log.Printf("Processing request in Goroutine #%d", i)
 
-				// Check if call has at least 3 elements
+				// Check if call has 3 elements
 				if len(call) != 3 {
 					log.Printf("Error in Goroutine #%d: call does not have enough elements", i)
 					texts[i] = string(GenerateJSONResponse(&PromptRequest{
-						PromptOutput: json.RawMessage(`{"error": "Invalid input: expected at least 3 elements"}`),
+						PromptOutput: json.RawMessage(`{"error": "Invalid input: expected 3 elements"}`),
 					}))
 
 					return
@@ -55,7 +55,7 @@ func textsToTexts(ctx context.Context, client *genai.Client, bqReq *BigQueryRequ
 				input.PromptInput = fmt.Sprint(call[0])
 				input.Model = fmt.Sprint(call[1])
 				input.ModelConfig = ParseModelConfig(fmt.Sprint(call[2]))
-				textToText(ctx, client, &input)
+				input.PromptOutput = textToText(ctx, client, &input)
 
 				texts[i] = string(GenerateJSONResponse(input))
 			}(i, call)
@@ -70,7 +70,7 @@ func textsToTexts(ctx context.Context, client *genai.Client, bqReq *BigQueryRequ
 }
 
 // Generates content based on the provided input
-func textToText(ctx context.Context, client *genai.Client, input *PromptRequest) {
+func textToText(ctx context.Context, client *genai.Client, input *PromptRequest) json.RawMessage {
 	// Configure the generative model with input parameters
 	mdl := client.GenerativeModel(input.Model)
 	mdl.SetMaxOutputTokens(input.ModelConfig.MaxOutputTokens)
@@ -82,10 +82,10 @@ func textToText(ctx context.Context, client *genai.Client, input *PromptRequest)
 	resp, err := mdl.GenerateContent(ctx, genai.Text(input.PromptInput))
 	if err != nil {
 		log.Printf("Error generating text for input: %v", err)
-		input.PromptOutput = json.RawMessage(fmt.Sprintf(`{"error": "%s"}`, err.Error()))
-	} else {
-		input.PromptOutput = GenerateJSONResponse(resp)
+		return json.RawMessage(fmt.Sprintf(`{"error": "%s"}`, err.Error()))
 	}
+
+	return GenerateJSONResponse(resp)
 }
 
 // GenerateJSONResponse converts the input to JSON format

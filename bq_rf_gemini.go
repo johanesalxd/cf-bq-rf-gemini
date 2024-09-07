@@ -23,7 +23,6 @@ func BQRFGemini(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithCancel(r.Context())
 	defer func() {
 		cancel()
-
 		log.Print("Done, Goroutines closed")
 	}()
 

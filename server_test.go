@@ -12,6 +12,7 @@ import (
 )
 
 func TestSendError(t *testing.T) {
+	// Test cases for different error scenarios
 	tests := []struct {
 		name string
 		err  error
@@ -57,21 +58,28 @@ func TestSendError(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			// Create a new HTTP response recorder
 			w := httptest.NewRecorder()
+			// Call the SendError function with test case parameters
 			bqrfgemini.SendError(w, test.err, test.code)
 
+			// Get the response from the recorder
 			resp := w.Result()
+			// Check if the status code matches the expected code
 			if resp.StatusCode != test.code {
 				t.Errorf("SendError(%v, %v) = %v, want %v", test.err, test.code, resp.StatusCode, test.code)
 			}
+			// Verify that the Content-Type header is set to application/json
 			if resp.Header.Get("Content-Type") != "application/json" {
 				t.Errorf("SendError(%v, %v) = %v, want %v", test.err, test.code, resp.Header.Get("Content-Type"), "application/json")
 			}
 
+			// Decode the response body into a BigQueryResponse struct
 			var got bqrfgemini.BigQueryResponse
 			if err := json.NewDecoder(resp.Body).Decode(&got); err != nil {
 				t.Errorf("SendError(%v, %v) = %v, want %v", test.err, test.code, err, test.want)
 			}
+			// Check if the error message in the response matches the expected message
 			if got.ErrorMessage != test.want {
 				t.Errorf("SendError(%v, %v) = %v, want %v", test.err, test.code, got.ErrorMessage, test.want)
 			}
@@ -80,6 +88,7 @@ func TestSendError(t *testing.T) {
 }
 
 func TestSendSuccess(t *testing.T) {
+	// Test cases for different success scenarios
 	tests := []struct {
 		name string
 		resp *bqrfgemini.BigQueryResponse
@@ -124,24 +133,32 @@ func TestSendSuccess(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			// Create a new HTTP response recorder
 			w := httptest.NewRecorder()
+			// Call the SendSuccess function with the test case response
 			bqrfgemini.SendSuccess(w, test.resp)
 
+			// Get the response from the recorder
 			resp := w.Result()
+			// Check if the status code is 200 OK
 			if resp.StatusCode != http.StatusOK {
 				t.Errorf("SendSuccess(%v) = %v, want %v", test.resp, resp.StatusCode, http.StatusOK)
 			}
+			// Verify that the Content-Type header is set to application/json
 			if resp.Header.Get("Content-Type") != "application/json" {
 				t.Errorf("SendSuccess(%v) = %v, want %v", test.resp, resp.Header.Get("Content-Type"), "application/json")
 			}
 
+			// Decode the response body into a BigQueryResponse struct
 			var got bqrfgemini.BigQueryResponse
 			if err := json.NewDecoder(resp.Body).Decode(&got); err != nil {
 				t.Errorf("SendSuccess(%v) = %v, want %v", test.resp, err, test.want)
 			}
+			// Check if the replies in the response match the expected replies
 			if !reflect.DeepEqual(got.Replies, test.want) {
 				t.Errorf("SendSuccess(%v) = %v, want %v", test.resp, got.Replies, test.want)
 			}
+			// Verify that the error message in the response matches the input error message
 			if got.ErrorMessage != test.resp.ErrorMessage {
 				t.Errorf("SendSuccess(%v) ErrorMessage = %v, want %v", test.resp, got.ErrorMessage, test.resp.ErrorMessage)
 			}
