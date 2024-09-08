@@ -7,14 +7,16 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"sync"
 
 	"cloud.google.com/go/vertexai/genai"
 )
 
 var (
-	clientPool *sync.Pool
-	initOnce   sync.Once
+	clientPool       *sync.Pool
+	initOnce         sync.Once
+	concurrencyLimit int
 )
 
 // SendError sends an error response with the given error message and HTTP status code
@@ -34,7 +36,15 @@ func SendSuccess(w http.ResponseWriter, bqResp *BigQueryResponse) {
 	json.NewEncoder(w).Encode(bqResp)
 }
 
-func initializePool() {
+func initAll() {
+	var err error
+
+	concurrencyLimit, err = strconv.Atoi(os.Getenv("CONCURRENCY_LIMIT"))
+	if err != nil {
+		log.Printf("Failed to parse CONCURRENCY_LIMIT, using default value of 100: %v", err)
+		concurrencyLimit = 100
+	}
+
 	clientPool = &sync.Pool{
 		New: func() interface{} {
 			client, err := genai.NewClient(context.Background(), os.Getenv("PROJECT_ID"), os.Getenv("LOCATION"))

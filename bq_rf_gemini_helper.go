@@ -15,7 +15,7 @@ func textsToTexts(ctx context.Context, client *genai.Client, bqReq *BigQueryRequ
 	// Initialize a slice to store the processed texts
 	texts := make([]string, len(bqReq.Calls))
 	wait := new(sync.WaitGroup)
-	semaphore := make(chan struct{}, 100) // Limit to 100 concurrent goroutines
+	semaphore := make(chan struct{}, concurrencyLimit)
 
 	for i, call := range bqReq.Calls {
 		select {

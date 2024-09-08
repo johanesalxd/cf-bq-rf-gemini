@@ -6,6 +6,6 @@ import (
 
 // init initializes the HTTP function handler for BQRFGemini
 func init() {
-	initOnce.Do(initializePool)
+	initOnce.Do(initAll)
 	functions.HTTP("BQRFGemini", BQRFGemini)
 }
