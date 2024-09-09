@@ -39,6 +39,7 @@ func SendSuccess(w http.ResponseWriter, bqResp *BigQueryResponse) {
 func initAll() {
 	var err error
 
+	// Parse the concurrency limit from the environment variable
 	concurrencyLimit, err = strconv.Atoi(os.Getenv("CONCURRENCY_LIMIT"))
 	if err != nil {
 		log.Printf("Failed to parse CONCURRENCY_LIMIT, using default value of 100: %v", err)

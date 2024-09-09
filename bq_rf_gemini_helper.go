@@ -14,7 +14,7 @@ import (
 func textsToTexts(ctx context.Context, client *genai.Client, bqReq *BigQueryRequest) *BigQueryResponse {
 	// Initialize a slice to store the processed texts
 	texts := make([]string, len(bqReq.Calls))
-	wait := new(sync.WaitGroup)
+	wg := new(sync.WaitGroup)
 	semaphore := make(chan struct{}, concurrencyLimit)
 
 	for i, call := range bqReq.Calls {
@@ -27,7 +27,7 @@ func textsToTexts(ctx context.Context, client *genai.Client, bqReq *BigQueryRequ
 
 			continue
 		default:
-			wait.Add(1)
+			wg.Add(1)
 
 			// Process each call concurrently
 			go func(i int, call []interface{}) {
@@ -36,7 +36,7 @@ func textsToTexts(ctx context.Context, client *genai.Client, bqReq *BigQueryRequ
 				defer func() {
 					// Release semaphore
 					<-semaphore
-					wait.Done()
+					wg.Done()
 				}()
 				log.Printf("Processing request in Goroutine #%d", i)
 
@@ -61,7 +61,7 @@ func textsToTexts(ctx context.Context, client *genai.Client, bqReq *BigQueryRequ
 			}(i, call)
 		}
 	}
-	wait.Wait()
+	wg.Wait()
 
 	// Prepare and return the BigQuery response
 	return &BigQueryResponse{

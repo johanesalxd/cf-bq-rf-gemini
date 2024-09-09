@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 
 	"cloud.google.com/go/vertexai/genai"
 )
@@ -19,11 +20,11 @@ func BQRFGemini(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create a cancellable context
-	ctx, cancel := context.WithCancel(r.Context())
+	// Create a context with timeout
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 	defer func() {
 		cancel()
-		log.Print("Done, Goroutines closed")
+		log.Printf("Done, Goroutines closed due to: %v", ctx.Err())
 	}()
 
 	// Get a client from the pool
