@@ -1,3 +1,6 @@
+[_]
+schema-version = "0.2"
+
 [[build.env]]
 name = "GOOGLE_FUNCTION_SIGNATURE_TYPE"
 value = "http"
@@ -5,3 +8,9 @@ value = "http"
 [[build.env]]
 name = "GOOGLE_FUNCTION_TARGET"
 value = "BQRFGemini"
+
+[io.buildpacks]
+exclude = [
+    "*_test.go",
+    "*.tmp"
+]
