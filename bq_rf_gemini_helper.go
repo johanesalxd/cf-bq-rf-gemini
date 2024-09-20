@@ -22,7 +22,7 @@ func textsToTexts(ctx context.Context, client *genai.Client, bqReq *BigQueryRequ
 		case <-ctx.Done():
 			log.Printf("Context cancelled before starting goroutine #%d", i)
 			texts[i] = string(GenerateJSONResponse(&PromptRequest{
-				PromptOutput: json.RawMessage(`{"error": "Request cancelled"}`),
+				PromptOutput: json.RawMessage(`{"error":"Request cancelled"}`),
 			}))
 
 			continue
@@ -44,7 +44,7 @@ func textsToTexts(ctx context.Context, client *genai.Client, bqReq *BigQueryRequ
 				if len(call) != 3 {
 					log.Printf("Error in Goroutine #%d: call does not have enough elements", i)
 					texts[i] = string(GenerateJSONResponse(&PromptRequest{
-						PromptOutput: json.RawMessage(`{"error": "Invalid input: expected 3 elements"}`),
+						PromptOutput: json.RawMessage(`{"error":"Invalid input: expected 3 elements"}`),
 					}))
 
 					return
@@ -94,7 +94,7 @@ func GenerateJSONResponse(input any) json.RawMessage {
 	jsonInput, err := json.Marshal(input)
 	if err != nil {
 		log.Printf("Error marshaling input to JSON: %v", err)
-		return json.RawMessage(fmt.Sprintf(`{"error": "%s"}`, err.Error()))
+		return json.RawMessage(fmt.Sprintf(`{"error":"%s"}`, err.Error()))
 	}
 
 	return jsonInput
